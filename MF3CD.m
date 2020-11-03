@@ -3,8 +3,6 @@ clc; clear all; close all;
 [fileName,FolderName] = uigetfile('*.*', 'Path selection Time 1');
 cd(FolderName);
 C = strsplit(FolderName,'_');
-%date = cell2mat(C(8));
-% date = 'r';
 
 str = computer;
 
@@ -19,12 +17,12 @@ config_ID = fopen(strcat(FolderName,deli,'config.txt'),'rb');
 tline = fgetl(config_ID);
 tline = fgetl(config_ID);
 b = str2num(tline); %row
-% b = 936; %after reading from ENVI
+
 tline = fgetl(config_ID);
 tline = fgetl(config_ID);
 tline = fgetl(config_ID);
 a = str2num(tline); %column
-% a = 979;%after reading from ENVI
+
 
 
 cd(FolderName)
@@ -60,26 +58,19 @@ T21 = conj(T12);
 %%
 [nrows,ncols]= size(T11);
 %%
-% no optimization
+
 disp('MF3CD')
 db_theta = zeros(nrows,ncols);
 pd = zeros(nrows,ncols);
 pv = zeros(nrows,ncols);
 ps = zeros(nrows,ncols);
 
-% t11_avg = zeros(nrows,ncols);
-% t22_avg = zeros(nrows,ncols);
-% t33_avg = zeros(nrows,ncols);
-
 dop_avg = zeros(nrows,ncols);
-% wsi=input('Window Size: ');
-wsi = 7;
-disp('Taking window size as 7')
+wsi=input('Window Size: ');
 wsj = wsi; % Number of columns in the window
 
 inci=fix(wsi/2); % Up & down movement margin from the central row
 incj=fix(wsj/2); % Left & right movement from the central column
-% Starting row and column fixed by the size of the patch extracted from the image of 21/10/1999
 
 starti=fix(wsi/2)+1; % Starting row for window processing
 startj=fix(wsj/2)+1; % Starting column for window processing
@@ -105,9 +96,7 @@ for ii=startj:stopj
         m1 = real(sqrt(1-(4*(det(T_T1)./(trace(T_T1).^2))))); % DOP Barakat
         
         span = t11s + t22s;
-        %         g1 = abs(t12s)^2+abs(t13s)^2;
         h = (t11s - t22s);
-        %         h1 = (t11s + g1 - t22s - t33s);
         g = t22s;
         val = (m1.*span.*h)./(t11s.*g+m1.^2.*span.^2);
         
@@ -134,7 +123,7 @@ Fold = strcat(FolderName,'MF3CD',deli);
 path = Fold;
 cd(path);
 %%
-addpath('E:\Prof_Juan_Opti_SAR_fusion\');
+addpath('E:\Opti_SAR_fusion\');
 f_name_surface = strcat(['Ps_MF3CD','.bin']);
 f_name_double_bounce = strcat(['Pd_MF3CD','.bin']);
 f_name_diffused = strcat(['Pv_MF3CD','.bin']);
@@ -171,6 +160,4 @@ hdrwrite_envi('dop_MF3CD', path, nrows, ncols)
 % close the file
 
 fclose('all');
-
-% imwrite(rgbVivid,'DB_Full_barakat.tif');
 disp('End');
