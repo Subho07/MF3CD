@@ -191,7 +191,8 @@ ps_d = dop_d.*(s0_d./2).*(1+sind(2*theta_d));
 %   fprintf('row: %d\n',ii);
 % end
 %%
-addpath('D:\11. FP-DP-CP_comp_rice_RSE\');
+% addpath('D:\11. FP-DP-CP_comp_rice_RSE\');
+addpath('ADD hdrwrite_envi.m path here');
 fName = strcat('DoP_DP', '_', char(date));
 f_name_dopDP = strcat('\', char(fName),'.bin');
 fileandpath_dopDP=strcat([path f_name_dopDP]);
