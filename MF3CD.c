@@ -3,7 +3,7 @@ A Model-free Four Component Scattering Power Decomposition for Polarimetric SAR 
 
 To compile and run, e.g.:
    gcc MF3CD.c -o MF3CD.exe -lm
-   ./MF3CD.exe T2
+   ./MF3CD.exe T2 3 # for analysis window size 3
 
 C impl. 20210423 by Ash Richardson, Senior Data Scientist, BC Wildfire Service */
 #include<math.h>
@@ -25,6 +25,7 @@ const char* T_fn[] = {"T11.bin", /* T2 matrix input filenames */
                       "T22.bin"};
 
 float ** T; /* buffers for T matrix elements */
+float ** T_f; /* buffers for filtered matrix elements */
 float ** out_d; /* output data buffers */
 
 #define N_OUT 5 /* number of output bands */
@@ -133,10 +134,45 @@ void hwrite(char * bfn, size_t nrow, size_t ncol, size_t nband){
   fclose(f);
 }
 
+void filter(float * t, float * t_f, int nrow, int ncol, int wsi){
+  int i, j, k, di, dj, dw, x, ix, ii, jj;
+  dw = (wsi - 1) / 2;
+  double dat, n;
+  float d;
+
+  for0(i, nrow){
+    for0(j, ncol){
+      n = dat = 0; /* denominator, result */
+      x = i * ncol + j; /* write index */
+
+      for(di = - dw; di <= dw; di++){
+        ii = i + di;
+
+        if(ii >= 0 && ii < nrow){
+          ix = ii * ncol;
+
+          for(dj = - dw; dj <= dw; dj++){
+            jj = j + dj;
+            d = t[ix + jj];
+
+            if(jj > 0 && jj < ncol && (!(isinf(d) || isnan(d)))){
+              dat += (double)d;
+              n++;
+            }
+          }
+        }
+      }
+      t_f[x] = n > 0 ? (float)(dat / ((double)n)): 0.; /* average */
+    }
+  }
+}
+
 int main(int argc, char ** argv){
 
-  if(argc < 2) err("M4FC.exe [input T3 directory]");
+  if(argc < 3) err("M4FC.exe [input T3 directory] [window size]");
   char * path = argv[1]; /* T3 matrix data path */
+  int wsi = atoi(argv[2]); /* window size parameter */
+  if(wsi %2 != 1) err("window size must be odd number");
   int i, j, k, np, nrow, ncol, di, dj, ii, jj, x, ix, jx, nw;
 
   char fn[STR_MAX];
@@ -158,18 +194,23 @@ int main(int argc, char ** argv){
     T[k] = read(fn, np); /* read each input data band */
   }
 
+  T_f = (float **) alloc(sizeof(float *) * N_IN); /* filtered bands buffers */
+  for0(k, N_IN) T_f[k] = falloc(np);  /* allocate space for filtered bands */
+
   out_d = (float **) alloc(sizeof(float *) * N_OUT); /* output bands buffers */
   for0(i, N_OUT) out_d[i] = falloc(np); /* allocate output space */
+
+  for0(k, N_IN) filter(T[k], T_f[k], nrow, ncol, wsi); /* filter */
 
   double t11, t12_r, t12_i, t22; /* intermediary variables */
   double dop_d, theta_d, pd_d, pv_d, ps_d;
   double det, m1, trace, val_d, trace2, h, g;
   float * out_d_dop, * out_d_theta, * out_d_pd, * out_d_pv, * out_d_ps;
 
-  float * t11_p = T[T11];
-  float * t12_r_p = T[T12_re];
-  float * t12_i_p = T[T12_im];
-  float * t22_p = T[T22];
+  float * t11_p = T_f[T11];
+  float * t12_r_p = T_f[T12_re];
+  float * t12_i_p = T_f[T12_im];
+  float * t22_p = T_f[T22];
 
   out_d_dop = out_d[_dop];
   out_d_theta = out_d[_theta];
